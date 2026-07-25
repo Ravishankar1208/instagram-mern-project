@@ -12,16 +12,18 @@ const userSchema = new mongoose.Schema({
     required : [true,'email  is required']
   },
   password : {
-    type : String,
-    required : [true, " password is required"]
+    type : String, 
+    required : [true, " password is required"],
+    select : false
   },
   bio:String,
   profileImage: {
     type: String,
     default : 'https://www.kindpng.com/imgv/iwoxbb_user-profile-default-image-png-clipart-png-download/'
   }
-})
+}) 
+
 
 const userModel = mongoose.model("user", userSchema)
 
-module.exports = userModel
+module.exports  = userModel 

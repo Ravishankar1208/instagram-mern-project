@@ -1,10 +1,14 @@
 const userModel = require('../models/user.model')
-const crypto = require('crypto')
+const bcrypt = require('bcryptjs')
 
 const jwt = require('jsonwebtoken')
 
 
 async function registerController (req,res){
+
+    
+
+
   const {email , username, password, bio , profileImage} = req.body
 
   const  isUserAlreadyExists = await userModel.findOne({
@@ -22,7 +26,7 @@ async function registerController (req,res){
     })
   }
 
-  const hash  = crypto.createHash('sha256').update(password).digest('hex')
+  const hash  =await bcrypt.hash(password, 10)
 
   const user =  await userModel.create({
     username,
@@ -33,12 +37,17 @@ async function registerController (req,res){
   })
 
   const token = jwt.sign({
-    id: user._id
+    id: user._id,
+    username : user.username
   },process.env.JWT_SECRET,
   {expiresIn: "1d"}
 )
 
-res.cookie("token", token)
+res.cookie("token", token, {
+  httpOnly: true,
+  sameSite: "lax",
+  secure: false,
+});
 
 res.status(201).json({
   message : "user registered sucessfully",
@@ -60,10 +69,10 @@ async function loginController (req , res){
       {
         username: username
       },{
-        email : email
+        email : email 
       }
     ]
-  })
+  }).select("+password")
 
   if(!user){
     return res.status(404).json({
@@ -71,9 +80,9 @@ async function loginController (req , res){
     })
   }
 
-  const hash  = crypto.createHash('sha256').update(password).digest('hex')
 
-  const isPasswordValid = hash == user.password
+
+  const isPasswordValid =await bcrypt.compare(password, user.password)
 
   if(!isPasswordValid) {
     return res.status(401).json({
@@ -81,13 +90,16 @@ async function loginController (req , res){
     })
   }
 
-  const token = jwt.sign(
-    {id:user._id},
-    process.env.JWT_SECRET,
-    {expiresIn:"1d"}
-  )
+  const token = jwt.sign({
+  id: user._id,
+  username: user.username
+}, process.env.JWT_SECRET)
 
-  res.cookie("token", token)
+res.cookie("token", token, {
+  httpOnly: true,
+  sameSite: "lax",
+  secure: false,
+});
 
   res.status(200).json({
     message:"user logged sucessfully.",
@@ -102,7 +114,27 @@ async function loginController (req , res){
 
 } 
 
+async function getMeController(req, res) {
+
+  if (!req.user) {
+    return res.status(401).json({
+      message: "Unauthorized"
+    });
+  }
+
+  res.status(200).json({
+    user: {
+      username: req.user.username,
+      email: req.user.email,
+      bio: req.user.bio,
+      profileImage: req.user.profileImage
+    }
+  });
+}
+
+
 module.exports= {
   registerController,
-  loginController
+  loginController,
+  getMeController
 }
