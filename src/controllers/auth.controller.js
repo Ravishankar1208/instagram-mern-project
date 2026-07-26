@@ -97,8 +97,8 @@ async function loginController (req , res){
 
 res.cookie("token", token, {
   httpOnly: true,
-  sameSite: "lax",
-  secure: false,
+  secure: true,
+  sameSite: "none",
 });
 
   res.status(200).json({
